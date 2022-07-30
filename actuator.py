@@ -1,16 +1,31 @@
+'''
+Filename:   actuator.py
+Author:     LT Finley
+Date:       30-JULY-2022
+
+Purpose:     
+Actuator waits for a cooling message from the controller and then "starts" cooling the engine.
+
+major sources:
+https://pypi.org/project/paho-mqtt/
+http://www.steves-internet-guide.com/mqtt-last-will-example/
+https://www.digi.com/resources/documentation/Digidocs/90001541/reference/r_example_subscribe_mqtt.htm
+'''
 from paho.mqtt import client as mqtt_client
 import random
 import time
 
+HIGH_TEMP = 212
+
+#connection info
 broker = 'localhost'
 port = 1883
-HIGH_TEMP = 212
+client_id = f'python-mqtt-{random.randint(0, 1000)}'
+
+#topic info
 topic_sense = "sensor"
 topic_act = "action"
     
-
-client_id = f'python-mqtt-{random.randint(0, 1000)}'
-
 
 def connect_mqtt():
     def on_connect(client, userdata, flags, rc):
@@ -20,26 +35,22 @@ def connect_mqtt():
             print("Failed to connect, return code %d\n", rc)
     # Set Connecting Client I
     client = mqtt_client.Client(client_id, clean_session=True)
-    #client.username_pw_set(username, password)
     client.connect(broker, port)
     return client
 
 def publish(client,topic, msg):
-    msg_count = 0
     while True:
         time.sleep(2)
         result = client.publish(topic, msg)
-        # result: [0, 1]
         status = result[0]
         if status == 0:
             print(f"Sendent `{msg}` to topic `{topic}`")
         else:
             print(f"Failed to send message to topic {topic}")
-        msg_count += 1
 
 def subscribe(client: mqtt_client, topic):
     def on_message(client, userdata, msg):
-        print(f"I saw the following template message`{msg.payload.decode()}` from `{msg.topic}` topic")
+        print("From topic: \'{}\' Controller has instructed to {}".format(msg.topic, msg.payload.decode()))
     client.subscribe(topic)
     client.on_message = on_message
     
