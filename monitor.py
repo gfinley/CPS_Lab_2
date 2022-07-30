@@ -1,3 +1,18 @@
+'''
+Filename:   monitor.py
+Author:     LT Finley
+Date:       30-JULY-2022
+
+Purpose:     
+Monitor acts as a monitor to view all messages in all topics. 
+It subscribes to all topics and prints out the messages.
+
+major sources:
+https://pypi.org/project/paho-mqtt/
+http://www.steves-internet-guide.com/mqtt-last-will-example/
+https://www.digi.com/resources/documentation/Digidocs/90001541/reference/r_example_subscribe_mqtt.htm
+'''
+
 from paho.mqtt import client as mqtt_client
 import random
 import time
@@ -7,7 +22,7 @@ port = 1883
 topic = "python/mqtt"
 client_id = f'python-mqtt-{random.randint(0, 1000)}'
 
-
+#topics to subscribe to
 topic_sense = "sensor"
 topic_act = "action"
 topic_master_monitor = "master_monitor"
@@ -25,7 +40,7 @@ def connect_mqtt():
     client.connect(broker, port)
     return client
 
-
+#print out every received message
 def subscribe(client: mqtt_client,topic):
     def on_message(client, userdata, msg):
         print(f"Received `{msg.payload.decode()}` from `{msg.topic}` topic")
