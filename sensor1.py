@@ -1,15 +1,27 @@
+from glob import glob
 from paho.mqtt import client as mqtt_client
 import random
 import time
+import json
 
 broker = 'localhost'
 port = 1883
-topic = "python/mqtt"
+
 client_id = f'python-mqtt-{random.randint(0, 1000)}'
-#username = 'emqx'
-#password = 'public'
+
+
 topic_sense = "sensor"
 topic_act = "action"
+topic_master_monitor = "master_monitor"
+
+ENGINE_TEMP = 150
+INCREASE_TEMP = True
+
+STOP_CHANGE = False
+
+ENGINE_NUMBER = 1
+
+
 
 
 def connect_mqtt():
@@ -19,42 +31,66 @@ def connect_mqtt():
         else:
             print("Failed to connect, return code %d\n", rc)
     # Set Connecting Client I
-    client = mqtt_client.Client(client_id)
+    client = mqtt_client.Client(client_id, clean_session=True)
+
     #client.username_pw_set(username, password)
     client.connect(broker, port)
     return client
 
-def publish(client,topic, msg):
-    msg_count = 0
+def publish(client,topic):
+    global ENGINE_TEMP, ENGINE_NUMBER
+    message = {}
     while True:
-        time.sleep(2)
-        result = client.publish(topic, msg)
+        time.sleep(1)
+        temp = get_temp()
+        
+        #add temperature and engine number to message
+        message['engine'] = ENGINE_NUMBER
+        message['temp'] = ENGINE_TEMP
+        
+        #convert message to out_data
+        out_data = json.dumps(message)
+        
+        result = client.publish(topic, out_data, qos=1)
         # result: [0, 1]
         status = result[0]
         if status == 0:
-            print(f"Sendent `{msg}` to topic `{topic}`")
+            print("Sensor1 published Engine: \'{}\' and Temp: \'{}\' to Topic:\'{}\'".format(ENGINE_NUMBER, ENGINE_TEMP, topic))
         else:
             print(f"Failed to send message to topic {topic}")
-        msg_count += 1
 
 def subscribe(client: mqtt_client):
     def on_message(client, userdata, msg):
         print(f"Received `{msg.payload.decode()}` from `{msg.topic}` topic")
 
-    client.subscribe(topic)
     client.on_message = on_message
     
     
 def run():
-    topic = "sensor"
     client = connect_mqtt()
     print("Connected to MQTT Broker!")
     client.loop_start()
-    publish(client,topic_sense,  get_temp())
+    publish(client, topic_sense)
 
 #simulate temperature measurement from 200 to 300 degrees
 def get_temp():
-    return random.randint(200, 300)
+    global ENGINE_TEMP
+    global INCREASE_TEMP
+    global STOP_CHANGE
+    if ENGINE_TEMP > 235:
+        INCREASE_TEMP = False
+    
+    if INCREASE_TEMP == True:
+        ENGINE_TEMP = ENGINE_TEMP + 5
+        return ENGINE_TEMP
+    else:
+        if STOP_CHANGE == False:
+            ENGINE_TEMP = ENGINE_TEMP - 10
+    if ENGINE_TEMP < 140:
+        STOP_CHANGE = True    
+        
+    return ENGINE_TEMP
+        
 
 if __name__ == '__main__':
     #this is a sensor

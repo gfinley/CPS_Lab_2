@@ -4,13 +4,13 @@ import time
 
 broker = 'localhost'
 port = 1883
-HIGH_TEMP = 212
-topic_sense = "sensor"
-topic_act = "action"
-    
-
+topic = "python/mqtt"
 client_id = f'python-mqtt-{random.randint(0, 1000)}'
 
+
+topic_sense = "sensor"
+topic_act = "action"
+topic_master_monitor = "master_monitor"
 
 def connect_mqtt():
     def on_connect(client, userdata, flags, rc):
@@ -20,26 +20,16 @@ def connect_mqtt():
             print("Failed to connect, return code %d\n", rc)
     # Set Connecting Client I
     client = mqtt_client.Client(client_id, clean_session=True)
+
     #client.username_pw_set(username, password)
     client.connect(broker, port)
     return client
 
-def publish(client,topic, msg):
-    msg_count = 0
-    while True:
-        time.sleep(2)
-        result = client.publish(topic, msg)
-        # result: [0, 1]
-        status = result[0]
-        if status == 0:
-            print(f"Sendent `{msg}` to topic `{topic}`")
-        else:
-            print(f"Failed to send message to topic {topic}")
-        msg_count += 1
 
-def subscribe(client: mqtt_client, topic):
+def subscribe(client: mqtt_client,topic):
     def on_message(client, userdata, msg):
-        print(f"I saw the following template message`{msg.payload.decode()}` from `{msg.topic}` topic")
+        print(f"Received `{msg.payload.decode()}` from `{msg.topic}` topic")
+
     client.subscribe(topic)
     client.on_message = on_message
     
@@ -48,12 +38,11 @@ def run():
     client = connect_mqtt()
     print("Connected to MQTT Broker!")
     client.loop_start()
+    subscribe(client, topic_sense)
     subscribe(client, topic_act)
-
-
-
+    subscribe(client, topic_master_monitor)
+    
 if __name__ == '__main__':
-    #this is a the actuator listening to the topic "sensor"
     run()
     while True:
         time.sleep(.1)
